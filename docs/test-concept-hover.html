@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>테스트 v2 — 개념 그림 hover 탐색 (06-1 평행선 사이의 비)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif; background:#0b1020; color:#e8ecf8;
+         min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 14px 40px; }
+  h1 { font-size:20px; margin-bottom:4px; text-align:center; }
+  .sub { color:#93a0c2; font-size:13px; margin-bottom:14px; text-align:center; line-height:1.6; }
+  .formula { background:#131d3d; border:1px solid #2b3c74; border-radius:12px; padding:10px 18px;
+             font-size:16px; margin-bottom:16px; text-align:center; letter-spacing:.3px; }
+  .formula b { color:#ffd94d; }
+  .wrap { width:100%; max-width:880px; display:grid; grid-template-columns:1fr 310px; gap:16px; }
+  @media (max-width:740px){ .wrap{ grid-template-columns:1fr; } }
+  .stage { background:#101830; border:1px solid #26335e; border-radius:16px; overflow:hidden; }
+  svg { display:block; width:100%; height:auto; }
+  .hoverable { cursor:pointer; }
+
+  /* 선 하이라이트용 후광 */
+  .halo { fill:none; stroke:transparent; stroke-width:15; stroke-linecap:round; opacity:0; transition:opacity .18s; pointer-events:none; }
+  .main { fill:none; stroke:#dbe4ff; stroke-width:3; stroke-linecap:round; transition:stroke .18s; pointer-events:none; }
+  .hit  { fill:none; stroke:transparent; stroke-width:22; stroke-linecap:round; cursor:pointer; }
+
+  /* 도형 영역 */
+  .zone { fill:transparent; transition:fill .18s, filter .18s; cursor:pointer; }
+  .zone.small-on { fill:rgba(64,180,255,.20); filter:drop-shadow(0 0 12px rgba(64,180,255,.75)); }
+  .zone.trap-on  { fill:rgba(255,170,40,.16); filter:drop-shadow(0 0 12px rgba(255,170,40,.65)); }
+
+  .pmark { fill:#39d98a; opacity:0; transition:opacity .18s; pointer-events:none; }  /* 평행 표시 */
+  .arc { fill:none; stroke:#5f6f9e; stroke-width:2.5; transition:stroke .18s; pointer-events:none; }
+  .arc-hit { fill:transparent; cursor:pointer; }
+  .vlabel { font-size:17px; font-weight:800; fill:#fff; pointer-events:none; }
+  .slabel { font-size:12.5px; fill:#9fb0d8; pointer-events:none; }
+
+  .panel { background:#101830; border:1px solid #26335e; border-radius:16px; padding:18px; min-height:240px; }
+  .panel .tag { display:inline-block; font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px;
+                background:#1c2a52; color:#9fc2ff; margin-bottom:10px; }
+  .panel h2 { font-size:21px; margin-bottom:10px; line-height:1.35; }
+  .panel p { font-size:14.5px; line-height:1.75; color:#c3cdee; }
+  .panel p b { color:#fff; }
+  .panel .gold { color:#ffd94d; } .panel .green { color:#4be38d; } .panel .blue { color:#7fd0ff; }
+  .hint { margin-top:14px; padding-top:12px; border-top:1px solid #22305a; font-size:12.5px; color:#8494bd; line-height:1.7; }
+</style>
+</head>
+<body>
+<h1>06-1 삼각형에서 평행선 사이의 선분의 길이의 비</h1>
+<p class="sub">조작하는 게 아니야. 그림에 커서를 올려보는 거야.<br>선 → 대응변·평행 / 도형 → 닮음·합동 / 각 → 대응각</p>
+
+<div class="formula">BC <b>∥</b> DE 이면 &nbsp; AB : AD = AC : AE = BC : DE = <b>2 : 1</b></div>
+
+<div class="wrap">
+  <div class="stage">
+    <svg viewBox="0 0 560 370" id="svg">
+      <!-- 도형 영역 (맨 아래 레이어) -->
+      <polygon class="zone hoverable" id="zone-trap"  points="190,180 100,325 460,325 370,180"/>
+      <polygon class="zone hoverable" id="zone-small" points="280,35 190,180 370,180"/>
+
+      <!-- 큰 삼각형 외곽선 후광/본선은 선분들이 담당 -->
+
+      <!-- 후광 레이어 -->
+      <line class="halo" id="halo-ab" x1="280" y1="35" x2="100" y2="325"/>
+      <line class="halo" id="halo-ac" x1="280" y1="35" x2="460" y2="325"/>
+      <line class="halo" id="halo-ad" x1="280" y1="35" x2="190" y2="180"/>
+      <line class="halo" id="halo-ae" x1="280" y1="35" x2="370" y2="180"/>
+      <line class="halo" id="halo-db" x1="190" y1="180" x2="100" y2="325"/>
+      <line class="halo" id="halo-ec" x1="370" y1="180" x2="460" y2="325"/>
+      <line class="halo" id="halo-de" x1="190" y1="180" x2="370" y2="180"/>
+      <line class="halo" id="halo-bc" x1="100" y1="325" x2="460" y2="325"/>
+
+      <!-- 본선 레이어 -->
+      <line class="main" id="main-ab" x1="280" y1="35" x2="100" y2="325"/>
+      <line class="main" id="main-ac" x1="280" y1="35" x2="460" y2="325"/>
+      <line class="main" id="main-de" x1="190" y1="180" x2="370" y2="180"/>
+      <line class="main" id="main-bc" x1="100" y1="325" x2="460" y2="325"/>
+
+      <!-- 평행 표시 (DE, BC 중간 화살표) -->
+      <polygon class="pmark" id="pm-de" points="280,173 292,180 280,187"/>
+      <polygon class="pmark" id="pm-bc" points="280,318 292,325 280,332"/>
+
+      <!-- 각 호 -->
+      <path class="arc" id="arc-b" d="M 122,289 A 42 42 0 0 1 142,325"/>
+      <path class="arc" id="arc-d" d="M 206,154 A 30 30 0 0 1 220,180"/>
+      <path class="arc" id="arc-c" d="M 418,325 A 42 42 0 0 1 438,289"/>
+      <path class="arc" id="arc-e" d="M 340,180 A 30 30 0 0 1 354,154"/>
+      <path class="arc" id="arc-a" d="M 262,66 A 34 34 0 0 0 298,66"/>
+
+      <!-- 꼭짓점 -->
+      <g>
+        <circle cx="280" cy="35" r="4" fill="#fff"/><circle cx="100" cy="325" r="4" fill="#fff"/>
+        <circle cx="460" cy="325" r="4" fill="#fff"/><circle cx="190" cy="180" r="4" fill="#fff"/>
+        <circle cx="370" cy="180" r="4" fill="#fff"/>
+        <text class="vlabel" x="272" y="24">A</text>
+        <text class="vlabel" x="82" y="348">B</text>
+        <text class="vlabel" x="462" y="348">C</text>
+        <text class="vlabel" x="162" y="176">D</text>
+        <text class="vlabel" x="378" y="176">E</text>
+        <text class="slabel" x="253" y="172">DE = 4</text>
+        <text class="slabel" x="253" y="348">BC = 8</text>
+        <text class="slabel" x="196" y="112">AD = 5</text>
+        <text class="slabel" x="330" y="112">AE = 5</text>
+      </g>
+
+      <!-- 히트 레이어 (맨 위) -->
+      <line class="hit hoverable" data-k="ab" x1="280" y1="35" x2="100" y2="325"/>
+      <line class="hit hoverable" data-k="ac" x1="280" y1="35" x2="460" y2="325"/>
+      <line class="hit hoverable" data-k="de" x1="190" y1="180" x2="370" y2="180"/>
+      <line class="hit hoverable" data-k="bc" x1="100" y1="325" x2="460" y2="325"/>
+      <circle class="arc-hit hoverable" data-k="angB" cx="128" cy="312" r="20"/>
+      <circle class="arc-hit hoverable" data-k="angC" cx="432" cy="312" r="20"/>
+      <circle class="arc-hit hoverable" data-k="angA" cx="280" cy="62" r="18"/>
+    </svg>
+  </div>
+
+  <div class="panel" id="panel">
+    <span class="tag" id="pTag">안내</span>
+    <h2 id="pTitle">어디든 커서를 올려봐</h2>
+    <p id="pDesc">선분, 삼각형 안쪽, 사다리꼴 안쪽, 각 표시 — 올려보는 순간 오른쪽에<br>
+    <b>뭐랑 대응하는지, 뭐랑 평행한지, 어떤 도형이랑 닮았는지</b>가 떠.</p>
+    <p class="hint">모바일이면 탭해도 같은 정보가 떠.<br>커서를 떼면 마지막으로 본 정보가 남아 있어.</p>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// 하이라이트 헬퍼: 후광 켜기/끄기
+function halo(ids, color, on){
+  ids.forEach(id=>{ const el=$(id); if(!el) return;
+    el.style.stroke = color; el.style.opacity = on ? .55 : 0; });
+}
+function mainStroke(ids, color, on){
+  ids.forEach(id=>{ const el=$(id); if(!el) return;
+    el.style.stroke = on ? color : '#dbe4ff'; });
+}
+function clearAll(){
+  document.querySelectorAll('.halo').forEach(e=> e.style.opacity=0);
+  document.querySelectorAll('.main').forEach(e=> e.style.stroke='#dbe4ff');
+  document.querySelectorAll('.pmark').forEach(e=> e.style.opacity=0);
+  document.querySelectorAll('.arc').forEach(e=> e.style.stroke='#5f6f9e');
+  $('zone-small').classList.remove('small-on'); $('zone-trap').classList.remove('trap-on');
+}
+function show(tag, title, desc){ $('pTag').textContent=tag; $('pTitle').innerHTML=title; $('pDesc').innerHTML=desc; }
+
+const GOLD='#ffc93c', BLUE='#40b4ff', GREEN='#39d98a', ORANGE='#ffb02e';
+
+const HANDLERS = {
+  // DE <-> BC : 대응변 + 평행 (같은 정보로 묶음)
+  de(){ clearAll(); halo(['halo-de','halo-bc'], GREEN, true); mainStroke(['main-de','main-bc'], GREEN, true);
+        $('pm-de').style.opacity=1; $('pm-bc').style.opacity=1;
+        show('선분 DE · BC', 'DE와 BC — <span class="green">평행</span> + 대응변',
+          '<b>DE ∥ BC</b> — 가운데 화살표 표시가 같은 두 선은 평행이야.<br>' +
+          '그리고 DE는 작은 삼각형 △ADE의 밑변, BC는 큰 삼각형 △ABC의 밑변이라 <b>서로 대응변</b>이야.<br>' +
+          '길이 비는 <b>DE : BC = 4 : 8 = 1 : 2</b>'); },
+  bc(){ HANDLERS.de(); },
+
+  ab(){ clearAll(); halo(['halo-ab'], GOLD, true); halo(['halo-ad'], BLUE, true); mainStroke(['main-ab'], GOLD, true);
+        show('선분 AB', 'AB — 전체 변, 대응은 AD',
+          '큰 삼각형 △ABC의 변이야. 작은 삼각형에서 <b>대응변은 AD</b> (파란 후광 부분).<br>' +
+          '<b>AD : AB = 5 : 10 = 1 : 2</b> — DE가 BC의 절반인 것과 같은 비야.<br>' +
+          '남은 아랫부분이 DB이고, AD : DB = 1 : 1 이야.'); },
+  ac(){ clearAll(); halo(['halo-ac'], GOLD, true); halo(['halo-ae'], BLUE, true); mainStroke(['main-ac'], GOLD, true);
+        show('선분 AC', 'AC — 전체 변, 대응은 AE',
+          '큰 삼각형 △ABC의 변이야. 작은 삼각형에서 <b>대응변은 AE</b> (파란 후광 부분).<br>' +
+          '<b>AE : AC = 5 : 10 = 1 : 2</b> — AB 쪽과 똑같은 비가 나와.<br>' +
+          '세 변 모두 비가 1:2로 같으니까 두 삼각형은 닮음이야.'); },
+
+  angB(){ clearAll(); ['arc-b','arc-d'].forEach(id=> $(id).style.stroke=GOLD);
+        halo(['halo-de','halo-bc'], GREEN, true); $('pm-de').style.opacity=1; $('pm-bc').style.opacity=1;
+        show('각 ∠B · ∠ADE', '∠ADE = ∠B — <span class="gold">대응각 (동위각)</span>',
+          'DE와 BC가 <b>평행</b>이라서 같은 방향에 있는 각(동위각)이 같아져.<br>' +
+          '∠B에 올리면 대응하는 ∠ADE도 같이 빛나 — 둘 다 <b>약 58°</b>로 같아.<br>' +
+          '이게 △ADE ∽ △ABC인 이유 중 하나야 (AA 닮음).'); },
+  angC(){ clearAll(); ['arc-c','arc-e'].forEach(id=> $(id).style.stroke=GOLD);
+        halo(['halo-de','halo-bc'], GREEN, true); $('pm-de').style.opacity=1; $('pm-bc').style.opacity=1;
+        show('각 ∠C · ∠AED', '∠AED = ∠C — <span class="gold">대응각 (동위각)</span>',
+          '오른쪽도 마찬가지야. DE ∥ BC라 <b>∠AED = ∠C</b>, 둘 다 약 58°.<br>' +
+          '왼쪽 각 쌍까지 두 쌍의 각이 같으니까 <b>AA 닮음</b>이 성립해.'); },
+  angA(){ clearAll(); $('arc-a').style.stroke=GOLD;
+        show('각 ∠A', '∠A — 두 삼각형의 <span class="gold">공통각</span>',
+          '꼭짓점 A는 작은 삼각형과 큰 삼각형이 <b>같이 쓰는 각</b>이야.<br>' +
+          '공통각 1쌍 + 동위각 1쌍 = 두 쌍이 같으니까 AA 닮음 완성.'); },
+
+  small(){ clearAll(); $('zone-small').classList.add('small-on');
+        halo(['halo-de'], BLUE, true);
+        show('도형 △ADE', '△ADE <span class="blue">∽</span> △ABC — 닮음 (합동 아님)',
+          '위에 있는 작은 삼각형이야. 큰 삼각형 △ABC와 <b>닮음</b>이야.<br>' +
+          '닮음비는 <b>1 : 2</b> (모든 변이 절반). 크기가 다르니까 <b>합동은 아니야</b>.<br>' +
+          '합동이 되려면 닮음비가 1 : 1 이어야 해.'); },
+  trap(){ clearAll(); $('zone-trap').classList.add('trap-on');
+        halo(['halo-de','halo-bc'], GREEN, true); $('pm-de').style.opacity=1; $('pm-bc').style.opacity=1;
+        show('도형 DBCE', '사다리꼴 DBCE — 윗변과 아랫변이 평행',
+          '아래쪽 사각형은 <b>사다리꼴</b>이야. 한 쌍의 대변 <b>DE ∥ BC</b> 라서 그래.<br>' +
+          '큰 삼각형 △ABC에서 작은 삼각형 △ADE를 빼면 이 사다리꼴이 남아.<br>' +
+          '옆변 DB와 EC는 평행이 아니야 — 그래서 사다리꼴이지 평행사변형은 아니야.'); },
+};
+
+// 선/각 히트 영역
+document.querySelectorAll('[data-k]').forEach(el=>{
+  const fn = HANDLERS[el.dataset.k]; if(!fn) return;
+  el.addEventListener('mouseenter', fn);
+  el.addEventListener('click', fn);
+});
+// 도형 영역 — 선 히트 영역보다 아래 레이어라, 선이 없는 안쪽에서만 잡힘
+$('zone-small').addEventListener('mouseenter', HANDLERS.small);
+$('zone-small').addEventListener('click', HANDLERS.small);
+$('zone-trap').addEventListener('mouseenter', HANDLERS.trap);
+$('zone-trap').addEventListener('click', HANDLERS.trap);
+</script>
+</body>
+</html>
